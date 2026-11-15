@@ -226,13 +226,31 @@ struct Mtxs {
         mtxs = nw;
         k += o.k;
     }
-    Mtx operator[](size_t i) {
+    Mtx& operator[](size_t i) {
         return mtxs[i];
     }
     const Mtx& operator[](size_t i) const {
         return mtxs[i];
     }
 };
+Mtxs operator+(const Mtxs& a, const Mtxs& b) {
+    Mtxs res(a.k + b.k);
+    for (size_t i = 0; i < a.k; ++i) {
+        res.mtxs[i] = a.mtxs[i];
+    }
+    for (size_t j = 0; j < b.k; ++j) {
+        res.mtxs[j] = b.mtxs[j];
+    }
+    return res;
+}
+Mtxs operator|(const Mtxs& a, const Mtx& m) {
+    Mtxs res(a.k + 1);
+    for (size_t i = 0; i < a.k; ++i) {
+        res.mtxs[i] = a.mtxs[i];
+    }
+    res.mtxs[a.k] = m;
+    return res;
+}
 Mtx mul(Mtx a, Mtx b) {
     Mtx r(a.rows, b.cols);
     for (size_t i = 0; i < a.rows; ++i) {
@@ -246,7 +264,7 @@ Mtx mul(Mtx a, Mtx b) {
 }
 void print(const Mtxs& s) {
     std::cout << "k = " << s.k << ":";
-    for (size_t i = 0; i <= s.k; ++i) {
+    for (size_t i = 0; i < s.k; ++i) {
         std::cout << " " << s[i][0][0];
     }
     std::cout << "\n";
@@ -254,7 +272,7 @@ void print(const Mtxs& s) {
 int main() {
     Mtxs a(4);
     for (size_t i = 0; i < a.k; ++i) {
-        a.mtxs[i] = Mtx(2, 2, double(i + 1));
+        a[i] = Mtx(2, 2, double(i + 1));
     }
     print(a);
     Mtxs b = a;
@@ -268,8 +286,11 @@ int main() {
     print(a);
     a.erase(0, a.k, 2);
     a[0][1][1] = 42;
-    std::cout << "a[0][1][1] = " << a[0][1][1] << "\n";
     print(a);
-    std::cout << "conv: " << a.conv(Mtx(2, 2, 1), mul)[0][0] << "\n";
+    Mtxs d = a + c;
+    Mtxs e = d | Mtx(2, 2, 7);
+    print(d);
+    print(e);
+    std::cout << "conv: " << e.conv(Mtx(2, 2, 1), mul)[0][0] << "\n";
     return 0;
 }
