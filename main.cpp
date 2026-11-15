@@ -232,6 +232,9 @@ struct Mtxs {
     const Mtx& operator[](size_t i) const {
         return mtxs[i];
     }
+    size_t size() const {
+        return k;
+    }
 };
 Mtxs operator+(const Mtxs& a, const Mtxs& b) {
     Mtxs res(a.k + b.k);
@@ -239,7 +242,7 @@ Mtxs operator+(const Mtxs& a, const Mtxs& b) {
         res.mtxs[i] = a.mtxs[i];
     }
     for (size_t j = 0; j < b.k; ++j) {
-        res.mtxs[j] = b.mtxs[j];
+        res.mtxs[a.k + j] = b.mtxs[j];
     }
     return res;
 }
@@ -263,28 +266,31 @@ Mtx mul(Mtx a, Mtx b) {
     return r;
 }
 void print(const Mtxs& s) {
-    std::cout << "k = " << s.k << ":";
-    for (size_t i = 0; i < s.k; ++i) {
+    std::cout << "size = " << s.size() << ":";
+    for (size_t i = 0; i < s.size(); ++i) {
         std::cout << " " << s[i][0][0];
     }
     std::cout << "\n";
 }
 int main() {
     Mtxs a(4);
-    for (size_t i = 0; i < a.k; ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
         a[i] = Mtx(2, 2, double(i + 1));
     }
+    int count = 0;
     print(a);
     Mtxs b = a;
     Mtxs c = std::move(b);
+    Mtxs& ref = a;
+    a = ref;
     a.erase(1);
     a.erase(0, 1);
     print(a);
     a.insert(1, Mtx(2, 2, 9));
     a.insert(0, Mtx(2, 2, 5), 2);
-    a.insert(a.k, c);
+    a.insert(a.size(), c);
     print(a);
-    a.erase(0, a.k, 2);
+    a.erase(0, a.size(), 2);
     a[0][1][1] = 42;
     print(a);
     Mtxs d = a + c;
