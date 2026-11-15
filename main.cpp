@@ -130,7 +130,7 @@ struct Mtxs {
         erase(idx, idx + 1);
     }
     void erase(size_t from, size_t to) {
-        if (from > to || to >= k) {
+        if (from > to || to > k) {
             throw std::out_of_range("erase: bad range");
         }
         size_t cnt = to - from;
@@ -177,8 +177,54 @@ struct Mtxs {
                 ++j;
             }
         }
+        delete[] mtxs;
         mtxs = nw;
         k -= cnt;
+    }
+    void insert(size_t pos, const Mtx& m) {
+        insert(pos, m, 1);
+    }
+    void insert(size_t pos, const Mtx& m, size_t count) {
+        if (pos > k) {
+            throw std::out_of_range("insert: bad pos");
+        }
+        if (count == 0) {
+            return;
+        }
+        Mtx* nw = new Mtx[k + count];
+        for (size_t i = 0; i < count; ++i) {
+            nw[pos + i] = m;
+        }
+        for (size_t i = 0; i < pos; ++i) {
+            nw[i] = std::move(mtxs[i]);
+        }
+        for (size_t i = pos; i < k; ++i) {
+            nw[i + count] = std::move(mtxs[i]);
+        }
+        delete[] mtxs;
+        mtxs = nw;
+        k += count;
+    }
+    void insert(size_t pos, const Mtxs& o) {
+        if (pos > k) {
+            throw std::out_of_range("insert: bad pos");
+        }
+        if (o.k == 0) {
+            return;
+        }
+        Mtx* nw = new Mtx[k + o.k];
+        for (size_t i = 0; i < o.k; ++i) {
+            nw[pos + i] = o.mtxs[i];
+        }
+        for (size_t i = 0; i < pos; ++i) {
+            nw[i] = std::move(mtxs[i]);
+        }
+        for (size_t i = pos; i < k; ++i) {
+            nw[i + o.k] = std::move(mtxs[i]);
+        }
+        delete[] mtxs;
+        mtxs = nw;
+        k += o.k;
     }
 };
 Mtx mul(Mtx a, Mtx b) {
@@ -200,23 +246,24 @@ void print(const Mtxs& s) {
     std::cout << "\n";
 }
 int main() {
-    Mtxs a(5);
+    Mtxs a(4);
     for (size_t i = 0; i < a.k; ++i) {
         a.mtxs[i] = Mtx(2, 2, double(i + 1));
     }
     print(a);
     Mtxs b = a;
     Mtxs c = std::move(b);
-    print(c);
-    Mtxs& ref = a;
-    a = ref;
-    print(a);
     a.erase(1);
+    a.erase(0, 1);
     print(a);
-    a.erase(0, 2);
+    a.insert(1, Mtx(2, 2, 9));
     print(a);
-    c.erase(0, c.k, 2);
-    print(c);
+    a.insert(0, Mtx(2, 2, 5), 2);
+    print(a);
+    a.insert(a.k, c);
+    print(a);
+    a.erase(0, a.k, 2);
+    print(a);
     std::cout << "conv: " << a.conv(Mtx(2, 2, 1), mul)[0][0] << "\n";
     return 0;
 }
