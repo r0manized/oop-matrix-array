@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstddef>
 #include <utility>
+#include <stdexcept>
 struct Mtx {
     size_t rows;
     size_t cols;
@@ -92,6 +93,9 @@ struct Mtxs {
         o.mtxs = nullptr;
     }
     Mtxs& operator=(const Mtxs& o) {
+        if (this == &o) {
+            return *this;
+        }
         delete[] mtxs;
         k = o.k;
         mtxs = nullptr;
@@ -119,6 +123,63 @@ struct Mtxs {
         }
         return m;
     }
+    void erase(size_t idx) {
+        if (idx >= k) {
+            throw std::out_of_range("erase: bad index");
+        }
+        erase(idx, idx + 1);
+    }
+    void erase(size_t from, size_t to) {
+        if (from > to || to >= k) {
+            throw std::out_of_range("erase: bad range");
+        }
+        size_t cnt = to - from;
+        if (cnt == 0) {
+            return;
+        }
+        Mtx* nw = nullptr;
+        if (cnt < k) {
+            nw = new Mtx[k - cnt];
+        }
+        for (size_t i = 0; i < from; ++i) {
+            nw[i] = std::move(mtxs[i]);
+        }
+        for (size_t i = to; i < k; ++i) {
+            nw[i - cnt] = std::move(mtxs[i]);
+        }
+        delete[] mtxs;
+        mtxs = nw;
+        k -= cnt;
+    }
+    void erase(size_t from, size_t to, size_t step) {
+        if (step == 0 || from > to || to > k) {
+            throw std::out_of_range("erase: bad args");
+        }
+        size_t cnt = 0;
+        for (size_t i = from; i < to; i += step) {
+            ++cnt;
+        }
+        if (cnt == 0) {
+            return;
+        }
+        Mtx* nw = nullptr;
+        if (cnt < k) {
+            nw = new Mtx[k - cnt];
+        }
+        size_t j = 0;
+        for (size_t i = 0; i < k; ++i) {
+            bool del = false;
+            if (i >= from && i < to && (i - from) % step == 0) {
+                del = true;
+            }
+            if (!del) {
+                nw[j] = std::move(mtxs[i]);
+                ++j;
+            }
+        }
+        mtxs = nw;
+        k -= cnt;
+    }
 };
 Mtx mul(Mtx a, Mtx b) {
     Mtx r(a.rows, b.cols);
@@ -139,13 +200,22 @@ void print(const Mtxs& s) {
     std::cout << "\n";
 }
 int main() {
-    Mtxs a(3);
+    Mtxs a(5);
     for (size_t i = 0; i < a.k; ++i) {
         a.mtxs[i] = Mtx(2, 2, double(i + 1));
     }
     print(a);
     Mtxs b = a;
     Mtxs c = std::move(b);
+    print(c);
+    Mtxs& ref = a;
+    a = ref;
+    print(a);
+    a.erase(1);
+    print(a);
+    a.erase(0, 2);
+    print(a);
+    c.erase(0, c.k, 2);
     print(c);
     std::cout << "conv: " << a.conv(Mtx(2, 2, 1), mul)[0][0] << "\n";
     return 0;
